@@ -6,6 +6,8 @@ import { saveCalendarTokens } from '@/lib/calendar/tokens'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/supabase/users'
 
+export const dynamic = 'force-dynamic'
+
 function loginRedirect(origin: string, error: string, description?: string) {
   const loginUrl = new URL('/login', origin)
   loginUrl.searchParams.set('error', error)
@@ -21,8 +23,8 @@ async function handleCalendarCallback(
   code: string,
 ) {
   const calendarUrl = new URL('/dashboard/calendar', requestUrl.origin)
-  const cookieResponse = NextResponse.next({ request })
-  const supabase = createRouteHandlerClient(request, cookieResponse)
+  const response = NextResponse.redirect(calendarUrl)
+  const supabase = createRouteHandlerClient(request, response)
   const user = await getCurrentUser(supabase)
 
   if (!user) {
@@ -42,11 +44,12 @@ async function handleCalendarCallback(
     )
   }
 
-  const response = NextResponse.redirect(calendarUrl, {
-    headers: cookieResponse.headers,
+  const finalResponse = NextResponse.redirect(calendarUrl)
+  response.cookies.getAll().forEach((cookie) => {
+    finalResponse.cookies.set(cookie.name, cookie.value)
   })
-  response.cookies.delete(CALENDAR_OAUTH_STATE_COOKIE)
-  return response
+  finalResponse.cookies.delete(CALENDAR_OAUTH_STATE_COOKIE)
+  return finalResponse
 }
 
 async function handleSupabaseCallback(

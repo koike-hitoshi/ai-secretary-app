@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
-import {
-  createOAuthStartClient,
-  redirectWithCookieHeaders,
-} from '@/lib/supabase/server'
+import { createOAuthStartClient } from '@/lib/supabase/server'
+
+export const dynamic = 'force-dynamic'
 
 /**
  * Google ログイン開始（サーバー側 OAuth）。
@@ -15,8 +14,7 @@ export async function GET(request: NextRequest) {
   callbackUrl.searchParams.set('redirect', redirectTo)
 
   try {
-    const cookieResponse = NextResponse.next({ request })
-    const supabase = createOAuthStartClient(request, cookieResponse)
+    const supabase = await createOAuthStartClient()
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -35,7 +33,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
 
-    return redirectWithCookieHeaders(data.url, cookieResponse)
+    return NextResponse.redirect(data.url)
   } catch (err) {
     const loginUrl = new URL('/login', request.nextUrl.origin)
     loginUrl.searchParams.set('error', 'oauth_start_failed')
