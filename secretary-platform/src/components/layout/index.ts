@@ -1,0 +1,7 @@
+export { AppShell } from '@/components/layout/AppShell'
+export { DashboardLayout } from '@/components/layout/DashboardLayout'
+export { Header, type HeaderProps } from '@/components/layout/Header'
+export { MobileMenu, type MobileMenuProps } from '@/components/layout/MobileMenu'
+export { NavigationItem, type NavigationItemProps } from '@/components/layout/NavigationItem'
+export { Sidebar } from '@/components/layout/Sidebar'
+export { UserMenu } from '@/components/layout/UserMenu'

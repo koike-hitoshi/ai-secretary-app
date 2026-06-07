@@ -1,0 +1,38 @@
+{
+  "name": "secretary-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next dev -p 3000",
+    "dev:fresh": "node scripts/dev-fresh.mjs",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "verify:smoke": "node scripts/verify-smoke.mjs",
+    "db:migrate": "node scripts/apply-migration.mjs",
+    "db:verify": "node scripts/verify-db.mjs",
+    "db:test": "node scripts/test-db-crud.mjs",
+    "setup:auth": "node scripts/setup-auth.mjs",
+    "verify:google-oauth": "node scripts/verify-google-oauth.mjs"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.2",
+    "next": "16.2.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "pg": "^8.21.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5"
+  }
+}

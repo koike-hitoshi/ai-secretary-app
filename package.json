@@ -1,0 +1,13 @@
+{
+  "name": "ai-secretary-app",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix secretary-platform",
+    "build": "npm run build --prefix secretary-platform",
+    "start": "npm run start --prefix secretary-platform",
+    "lint": "npm run lint --prefix secretary-platform"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.3"
+  }
+}
