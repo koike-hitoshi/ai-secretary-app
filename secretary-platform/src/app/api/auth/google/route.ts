@@ -14,27 +14,35 @@ export async function GET(request: NextRequest) {
   const callbackUrl = new URL('/api/auth/google/callback', request.nextUrl.origin)
   callbackUrl.searchParams.set('redirect', redirectTo)
 
-  let cookieResponse = NextResponse.next({ request })
-  const supabase = createOAuthStartClient(request, (response) => {
-    cookieResponse = response
-  })
+  try {
+    const cookieResponse = NextResponse.next({ request })
+    const supabase = createOAuthStartClient(request, cookieResponse)
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: callbackUrl.toString(),
-      skipBrowserRedirect: true,
-    },
-  })
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: callbackUrl.toString(),
+        skipBrowserRedirect: true,
+      },
+    })
 
-  if (error || !data.url) {
+    if (error || !data.url) {
+      const loginUrl = new URL('/login', request.nextUrl.origin)
+      loginUrl.searchParams.set('error', 'oauth_start_failed')
+      if (error?.message) {
+        loginUrl.searchParams.set('error_description', error.message)
+      }
+      return NextResponse.redirect(loginUrl)
+    }
+
+    return redirectWithCookieHeaders(data.url, cookieResponse)
+  } catch (err) {
     const loginUrl = new URL('/login', request.nextUrl.origin)
     loginUrl.searchParams.set('error', 'oauth_start_failed')
-    if (error?.message) {
-      loginUrl.searchParams.set('error_description', error.message)
-    }
+    loginUrl.searchParams.set(
+      'error_description',
+      err instanceof Error ? err.message : 'OAuth start failed',
+    )
     return NextResponse.redirect(loginUrl)
   }
-
-  return redirectWithCookieHeaders(data.url, cookieResponse)
 }

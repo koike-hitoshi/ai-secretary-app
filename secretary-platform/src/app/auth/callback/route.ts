@@ -27,19 +27,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(fallback)
   }
 
-  const supabaseResponse = NextResponse.redirect(
-    `${origin}${redirect.startsWith('/') ? redirect : '/dashboard'}`,
-  )
+  try {
+    const supabaseResponse = NextResponse.redirect(
+      `${origin}${redirect.startsWith('/') ? redirect : '/dashboard'}`,
+    )
 
-  const supabase = createRouteHandlerClient(request, supabaseResponse)
-  const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const supabase = createRouteHandlerClient(request, supabaseResponse)
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
 
-  if (error) {
+    if (error) {
+      const loginUrl = new URL('/login', origin)
+      loginUrl.searchParams.set('error', 'exchange_failed')
+      loginUrl.searchParams.set('error_description', error.message)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    return supabaseResponse
+  } catch (err) {
     const loginUrl = new URL('/login', origin)
     loginUrl.searchParams.set('error', 'exchange_failed')
-    loginUrl.searchParams.set('error_description', error.message)
+    loginUrl.searchParams.set(
+      'error_description',
+      err instanceof Error ? err.message : 'auth_callback_failed',
+    )
     return NextResponse.redirect(loginUrl)
   }
-
-  return supabaseResponse
 }

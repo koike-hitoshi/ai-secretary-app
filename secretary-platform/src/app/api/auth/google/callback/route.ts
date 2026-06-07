@@ -6,6 +6,15 @@ import { saveCalendarTokens } from '@/lib/calendar/tokens'
 import { createRouteHandlerClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/supabase/users'
 
+function loginRedirect(origin: string, error: string, description?: string) {
+  const loginUrl = new URL('/login', origin)
+  loginUrl.searchParams.set('error', error)
+  if (description) {
+    loginUrl.searchParams.set('error_description', description)
+  }
+  return NextResponse.redirect(loginUrl)
+}
+
 async function handleCalendarCallback(
   request: NextRequest,
   requestUrl: URL,
@@ -33,9 +42,8 @@ async function handleCalendarCallback(
     )
   }
 
-  const response = NextResponse.redirect(calendarUrl)
-  cookieResponse.cookies.getAll().forEach((cookie) => {
-    response.cookies.set(cookie.name, cookie.value)
+  const response = NextResponse.redirect(calendarUrl, {
+    headers: cookieResponse.headers,
   })
   response.cookies.delete(CALENDAR_OAUTH_STATE_COOKIE)
   return response
@@ -56,10 +64,7 @@ async function handleSupabaseCallback(
   const { error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
-    const loginUrl = new URL('/login', requestUrl.origin)
-    loginUrl.searchParams.set('error', 'exchange_failed')
-    loginUrl.searchParams.set('error_description', error.message)
-    return NextResponse.redirect(loginUrl)
+    return loginRedirect(requestUrl.origin, 'exchange_failed', error.message)
   }
 
   return response
@@ -72,44 +77,49 @@ export async function GET(request: NextRequest) {
   const error = requestUrl.searchParams.get('error')
   const oauthDescription = requestUrl.searchParams.get('error_description')
 
-  const savedCalendarState = request.cookies.get(CALENDAR_OAUTH_STATE_COOKIE)?.value
-  const isCalendarOAuth =
-    Boolean(code && state && savedCalendarState && state === savedCalendarState)
+  try {
+    const savedCalendarState = request.cookies.get(CALENDAR_OAUTH_STATE_COOKIE)?.value
+    const isCalendarOAuth =
+      Boolean(code && state && savedCalendarState && state === savedCalendarState)
 
-  if (isCalendarOAuth) {
-    if (error) {
+    if (isCalendarOAuth) {
+      if (error) {
+        const calendarUrl = new URL('/dashboard/calendar', requestUrl.origin)
+        calendarUrl.searchParams.set('error', error)
+        const response = NextResponse.redirect(calendarUrl)
+        response.cookies.delete(CALENDAR_OAUTH_STATE_COOKIE)
+        return response
+      }
+
+      return handleCalendarCallback(request, requestUrl, code!)
+    }
+
+    if (state && savedCalendarState && state !== savedCalendarState) {
       const calendarUrl = new URL('/dashboard/calendar', requestUrl.origin)
-      calendarUrl.searchParams.set('error', error)
+      calendarUrl.searchParams.set('error', 'invalid_oauth_state')
       const response = NextResponse.redirect(calendarUrl)
       response.cookies.delete(CALENDAR_OAUTH_STATE_COOKIE)
       return response
     }
 
-    return handleCalendarCallback(request, requestUrl, code!)
-  }
-
-  if (state && savedCalendarState && state !== savedCalendarState) {
-    const calendarUrl = new URL('/dashboard/calendar', requestUrl.origin)
-    calendarUrl.searchParams.set('error', 'invalid_oauth_state')
-    const response = NextResponse.redirect(calendarUrl)
-    response.cookies.delete(CALENDAR_OAUTH_STATE_COOKIE)
-    return response
-  }
-
-  if (error) {
-    const loginUrl = new URL('/login', requestUrl.origin)
-    loginUrl.searchParams.set('error', error)
-    if (oauthDescription) {
-      loginUrl.searchParams.set('error_description', oauthDescription)
+    if (error) {
+      return loginRedirect(
+        requestUrl.origin,
+        error,
+        oauthDescription ?? undefined,
+      )
     }
-    return NextResponse.redirect(loginUrl)
-  }
 
-  if (code) {
-    return handleSupabaseCallback(request, requestUrl, code)
-  }
+    if (code) {
+      return handleSupabaseCallback(request, requestUrl, code)
+    }
 
-  const loginUrl = new URL('/login', requestUrl.origin)
-  loginUrl.searchParams.set('error', 'auth_callback_error')
-  return NextResponse.redirect(loginUrl)
+    return loginRedirect(requestUrl.origin, 'auth_callback_error')
+  } catch (err) {
+    return loginRedirect(
+      requestUrl.origin,
+      'exchange_failed',
+      err instanceof Error ? err.message : 'auth_callback_failed',
+    )
+  }
 }
