@@ -2,24 +2,8 @@ import { createClient } from '@/lib/supabase/client'
 import { getCurrentUser } from '@/lib/supabase/users'
 
 export async function signInWithGoogle(redirectTo = '/dashboard') {
-  const supabase = createClient()
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    (typeof window !== 'undefined' ? window.location.origin : '')
-
-  const callbackUrl = new URL('/auth/callback', appUrl)
-  callbackUrl.searchParams.set('redirect', redirectTo)
-
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: callbackUrl.toString(),
-    },
-  })
-
-  if (error) {
-    throw error
-  }
+  const params = new URLSearchParams({ redirect: redirectTo })
+  window.location.assign(`/api/auth/google?${params.toString()}`)
 }
 
 export async function signOut() {

@@ -1,9 +1,8 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
 
-import type { Database } from '@/types/database'
+import { createRouteHandlerClient } from '@/lib/supabase/server'
 
+/** 旧コールバック URL 互換（新規は /api/auth/google/callback） */
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
@@ -28,31 +27,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(fallback)
   }
 
-  const cookieStore = await cookies()
   const supabaseResponse = NextResponse.redirect(
     `${origin}${redirect.startsWith('/') ? redirect : '/dashboard'}`,
   )
 
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options)
-          })
-          cookiesToSet.forEach(({ name, value, options }) => {
-            supabaseResponse.cookies.set(name, value, options)
-          })
-        },
-      },
-    },
-  )
-
+  const supabase = createRouteHandlerClient(request, supabaseResponse)
   const { error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {

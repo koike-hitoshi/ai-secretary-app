@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers'
 import { NextResponse, type NextRequest } from 'next/server'
 import crypto from 'node:crypto'
 
@@ -18,9 +17,9 @@ export async function GET(request: NextRequest) {
   }
 
   const state = crypto.randomBytes(24).toString('hex')
-  const cookieStore = await cookies()
+  const response = NextResponse.redirect(buildGoogleAuthUrl(state))
 
-  cookieStore.set(CALENDAR_OAUTH_STATE_COOKIE, state, {
+  response.cookies.set(CALENDAR_OAUTH_STATE_COOKIE, state, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -28,5 +27,5 @@ export async function GET(request: NextRequest) {
     maxAge: 600,
   })
 
-  return NextResponse.redirect(buildGoogleAuthUrl(state))
+  return response
 }

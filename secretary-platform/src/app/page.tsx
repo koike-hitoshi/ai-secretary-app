@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/supabase/users'
 
+export const dynamic = 'force-dynamic'
+
 export default async function RootPage() {
   const supabase = await createClient()
   const user = await getCurrentUser(supabase)
