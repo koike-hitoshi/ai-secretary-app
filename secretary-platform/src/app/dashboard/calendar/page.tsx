@@ -8,6 +8,7 @@ import {
   fetchCalendarItemsAction,
   getCalendarStatusAction,
 } from '@/lib/calendar/actions'
+import type { CalendarConnectionStatus } from '@/types/calendar'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/supabase/users'
 
@@ -19,10 +20,29 @@ export default async function CalendarPage() {
     redirect('/login?redirect=/dashboard/calendar')
   }
 
-  const [status, data] = await Promise.all([
-    getCalendarStatusAction(),
-    fetchCalendarItemsAction(new Date().toISOString(), 'month'),
-  ])
+  const initialDateIso = new Date().toISOString()
+  let initialStatus: CalendarConnectionStatus = {
+    connected: false,
+    lastSyncAt: null,
+  }
+  let initialItems: Awaited<
+    ReturnType<typeof fetchCalendarItemsAction>
+  >['items'] = []
+  let initialError: string | null = null
+
+  try {
+    const [status, data] = await Promise.all([
+      getCalendarStatusAction(),
+      fetchCalendarItemsAction(initialDateIso, 'month'),
+    ])
+    initialStatus = status
+    initialItems = data.items
+  } catch (err) {
+    initialError =
+      err instanceof Error
+        ? err.message
+        : 'カレンダーの読み込みに失敗しました'
+  }
 
   return (
     <>
@@ -38,9 +58,10 @@ export default async function CalendarPage() {
         }
       >
         <CalendarPageClient
-          initialStatus={status}
-          initialItems={data.items}
-          initialDateIso={new Date().toISOString()}
+          initialStatus={initialStatus}
+          initialItems={initialItems}
+          initialDateIso={initialDateIso}
+          initialError={initialError}
         />
       </Suspense>
     </>

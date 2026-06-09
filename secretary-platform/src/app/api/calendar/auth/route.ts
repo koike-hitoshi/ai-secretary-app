@@ -16,8 +16,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  const origin = new URL(request.url).origin
   const state = crypto.randomBytes(24).toString('hex')
-  const response = NextResponse.redirect(buildGoogleAuthUrl(state))
+  const response = NextResponse.redirect(buildGoogleAuthUrl(state, origin))
 
   response.cookies.set(CALENDAR_OAUTH_STATE_COOKIE, state, {
     httpOnly: true,

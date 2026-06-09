@@ -33,3 +33,12 @@ export function throwIfError(result: { error: PostgrestError | null }): void {
     throw new SupabaseDataError(result.error)
   }
 }
+
+export function isMissingRelationError(error: PostgrestError): boolean {
+  return (
+    error.code === '42P01' ||
+    error.code === 'PGRST205' ||
+    /relation .* does not exist/i.test(error.message) ||
+    /Could not find the table/i.test(error.message)
+  )
+}

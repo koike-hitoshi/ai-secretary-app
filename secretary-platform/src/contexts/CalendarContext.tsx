@@ -63,6 +63,7 @@ type CalendarProviderProps = {
   initialStatus: CalendarConnectionStatus
   initialItems: CalendarItem[]
   initialDateIso: string
+  initialError?: string | null
   children: ReactNode
 }
 
@@ -83,6 +84,7 @@ export function CalendarProvider({
   initialStatus,
   initialItems,
   initialDateIso,
+  initialError = null,
   children,
 }: CalendarProviderProps) {
   const [currentDate, setCurrentDate] = useState(() => new Date(initialDateIso))
@@ -92,7 +94,7 @@ export function CalendarProvider({
   const [lastSyncAt, setLastSyncAt] = useState(initialStatus.lastSyncAt)
   const [isLoading, setIsLoading] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(initialError)
   const skipInitialRefresh = useRef(true)
 
   const itemsByDate = useMemo(() => groupItemsByDate(items), [items])

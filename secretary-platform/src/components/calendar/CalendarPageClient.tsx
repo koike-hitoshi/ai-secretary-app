@@ -25,6 +25,7 @@ type CalendarPageClientProps = {
   initialStatus: CalendarConnectionStatus
   initialItems: CalendarItem[]
   initialDateIso: string
+  initialError?: string | null
 }
 
 function CalendarPageContent() {
@@ -109,8 +110,30 @@ function CalendarPageContent() {
       )}
 
       {error && (
-        <Alert type="error" dismissible onDismiss={clearError}>
+        <Alert type="error" title="カレンダー連携エラー" dismissible onDismiss={clearError}>
           {error}
+          {(error.includes('GOOGLE_CLIENT_ID') ||
+            error.includes('google_calendar_tokens') ||
+            error.includes('PGRST205')) && (
+            <ul className="mt-sm list-disc space-y-xs pl-md text-sm">
+              <li>
+                Vercel の環境変数に <code>GOOGLE_CLIENT_ID</code> と{' '}
+                <code>GOOGLE_CLIENT_SECRET</code> を設定してください
+              </li>
+              <li>
+                <code>NEXT_PUBLIC_APP_URL</code> を本番 URL（例:{' '}
+                https://ai-secretary-app-pearl.vercel.app）に合わせてください
+              </li>
+              <li>
+                Google Cloud Console の Redirect URI に本番の{' '}
+                <code>/api/auth/google/callback</code> を追加してください
+              </li>
+              <li>
+                Supabase で <code>google_calendar_tokens</code> テーブルが未作成の場合は{' '}
+                <code>npm run db:migrate</code> を実行してください
+              </li>
+            </ul>
+          )}
         </Alert>
       )}
 

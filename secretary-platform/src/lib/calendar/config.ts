@@ -11,16 +11,21 @@ export const GOOGLE_CALENDAR_API_BASE =
 
 export const CALENDAR_OAUTH_STATE_COOKIE = 'calendar_oauth_state'
 
-export function getGoogleOAuthConfig() {
+export function resolveGoogleRedirectUri(origin?: string): string {
+  return (
+    process.env.GOOGLE_REDIRECT_URI ??
+    `${origin ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/api/auth/google/callback`
+  )
+}
+
+export function getGoogleOAuthConfig(origin?: string) {
   const clientId = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
-  const redirectUri =
-    process.env.GOOGLE_REDIRECT_URI ??
-    `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/api/auth/google/callback`
+  const redirectUri = resolveGoogleRedirectUri(origin)
 
   if (!clientId || !clientSecret) {
     throw new Error(
-      'GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET が未設定です。.env.local を確認してください。',
+      'GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET が未設定です。環境変数を確認してください。',
     )
   }
 

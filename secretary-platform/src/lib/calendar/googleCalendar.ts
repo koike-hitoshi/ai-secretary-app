@@ -32,8 +32,8 @@ type GoogleEventsResponse = {
 
 const TIMEZONE = 'Asia/Tokyo'
 
-export function buildGoogleAuthUrl(state: string): string {
-  const { clientId, redirectUri } = getGoogleOAuthConfig()
+export function buildGoogleAuthUrl(state: string, origin?: string): string {
+  const { clientId, redirectUri } = getGoogleOAuthConfig(origin)
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -48,12 +48,15 @@ export function buildGoogleAuthUrl(state: string): string {
   return `${GOOGLE_OAUTH_AUTH_URL}?${params.toString()}`
 }
 
-export async function exchangeCodeForTokens(code: string): Promise<{
+export async function exchangeCodeForTokens(
+  code: string,
+  origin?: string,
+): Promise<{
   accessToken: string
   refreshToken: string | null
   expiresIn: number
 }> {
-  const { clientId, clientSecret, redirectUri } = getGoogleOAuthConfig()
+  const { clientId, clientSecret, redirectUri } = getGoogleOAuthConfig(origin)
 
   const response = await fetch(GOOGLE_OAUTH_TOKEN_URL, {
     method: 'POST',

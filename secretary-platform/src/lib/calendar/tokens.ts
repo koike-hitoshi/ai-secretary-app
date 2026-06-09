@@ -4,7 +4,11 @@ import {
   getGoogleOAuthConfig,
   GOOGLE_OAUTH_TOKEN_URL,
 } from '@/lib/calendar/config'
-import { throwIfError, throwOnError } from '@/lib/supabase/errors'
+import {
+  isMissingRelationError,
+  throwIfError,
+  throwOnError,
+} from '@/lib/supabase/errors'
 import type { Database } from '@/types/database'
 
 type Supabase = SupabaseClient<Database>
@@ -27,6 +31,9 @@ export async function getCalendarTokens(
     .maybeSingle()
 
   if (error) {
+    if (isMissingRelationError(error)) {
+      return null
+    }
     throwOnError({ data: null, error })
   }
 
@@ -119,28 +126,37 @@ export async function getValidAccessToken(
   supabase: Supabase,
   userId: string,
 ): Promise<string | null> {
-  const tokens = await getCalendarTokens(supabase, userId)
-  if (!tokens) return null
+  try {
+    const tokens = await getCalendarTokens(supabase, userId)
+    if (!tokens) return null
 
-  const isExpired =
-    tokens.expiresAt != null &&
-    new Date(tokens.expiresAt).getTime() <= Date.now() + 60_000
+    const isExpired =
+      tokens.expiresAt != null &&
+      new Date(tokens.expiresAt).getTime() <= Date.now() + 60_000
 
-  if (!isExpired) {
-    return tokens.accessToken
-  }
+    if (!isExpired) {
+      return tokens.accessToken
+    }
 
-  if (!tokens.refreshToken) {
-    await deleteCalendarTokens(supabase, userId)
+    if (!tokens.refreshToken) {
+      await deleteCalendarTokens(supabase, userId)
+      return null
+    }
+
+    const refreshed = await refreshAccessToken(tokens.refreshToken)
+    await saveCalendarTokens(supabase, userId, {
+      accessToken: refreshed.accessToken,
+      refreshToken: tokens.refreshToken,
+      expiresIn: refreshed.expiresIn,
+    })
+
+    return refreshed.accessToken
+  } catch {
+    try {
+      await deleteCalendarTokens(supabase, userId)
+    } catch {
+      // ignore cleanup failures
+    }
     return null
   }
-
-  const refreshed = await refreshAccessToken(tokens.refreshToken)
-  await saveCalendarTokens(supabase, userId, {
-    accessToken: refreshed.accessToken,
-    refreshToken: tokens.refreshToken,
-    expiresIn: refreshed.expiresIn,
-  })
-
-  return refreshed.accessToken
 }

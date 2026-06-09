@@ -23,8 +23,11 @@ export async function fetchCalendarItems(
   let events: CalendarItem[] = []
 
   if (accessToken) {
-    const googleEvents = await listGoogleEvents(accessToken, timeMin, timeMax)
-    events = googleEvents
+    try {
+      events = await listGoogleEvents(accessToken, timeMin, timeMax)
+    } catch {
+      events = []
+    }
   }
 
   const syncedAt = new Date().toISOString()

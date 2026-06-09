@@ -34,7 +34,7 @@ async function handleCalendarCallback(
   }
 
   try {
-    const tokens = await exchangeCodeForTokens(code)
+    const tokens = await exchangeCodeForTokens(code, requestUrl.origin)
     await saveCalendarTokens(supabase, user.id, tokens)
     calendarUrl.searchParams.set('connected', '1')
   } catch (err) {
